@@ -16,15 +16,12 @@ app.use("/orders", require("./routes/orders"));
 app.use("/articles", require("./routes/articles"));
 app.use("/jobs", require("./routes/jobs"));
 
+// ✅ ADD THIS LINE (VERY IMPORTANT)
+app.use("/api/admin", require("./routes/users"));
+
 app.get("/", (req, res) => {
   res.json({
-    message: "MarketMitra API is running 🚜",
-    endpoints: {
-      auth: {
-        login: "POST /auth/login",
-        register: "POST /auth/register"
-      }
-    }
+    message: "MarketMitra API is running 🚜"
   });
 });
 

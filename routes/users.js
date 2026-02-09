@@ -1,53 +1,40 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
-/* GET ALL USERS */
-router.get("/", async (req, res) => {
+/* ================= ADMIN: GET ALL USERS ================= */
+router.get("/users", adminMiddleware, async (req, res) => {
   try {
     const [users] = await db.execute(
-      "SELECT id,name,email,role,status FROM users"
+      "SELECT id, name, email, role, status FROM users"
     );
-    res.status(200).json({ users });
+    res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-/* UPDATE USER */
-router.put("/update/:id", async (req, res) => {
-  const { name, role, status } = req.body;
+/* ================= ADMIN: UPDATE USER STATUS ================= */
+router.put("/users/update/:id", adminMiddleware, async (req, res) => {
+  const { status } = req.body;
   const { id } = req.params;
 
-  try {
-    const [result] = await db.execute(
-      "UPDATE users SET name=?, role=?, status=? WHERE id=?",
-      [name, role, status, id]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json({ message: "User updated" });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  if (!["approved", "rejected"].includes(status)) {
+    return res.status(400).json({ message: "Invalid status value" });
   }
-});
 
-/* DELETE USER */
-router.delete("/delete/:id", async (req, res) => {
   try {
     const [result] = await db.execute(
-      "DELETE FROM users WHERE id=?",
-      [req.params.id]
+      "UPDATE users SET status=? WHERE id=?",
+      [status, id]
     );
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json({ message: "User deleted" });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
