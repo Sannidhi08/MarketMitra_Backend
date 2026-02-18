@@ -1,42 +1,113 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const adminMiddleware = require("../middleware/adminMiddleware");
 
-/* ADD */
-router.post("/add", async (req, res) => {
-  const { category_name } = req.body;
-
+/* ================= GET ALL CATEGORIES ================= */
+router.get("/", async (req, res) => {
   try {
-    await db.execute(
-      "INSERT INTO categories (category_name) VALUES (?)",
-      [category_name]
+    console.log("GET /api/categories requested");
+    const [categories] = await db.execute(
+      "SELECT * FROM categories ORDER BY created_at DESC"
     );
-    res.status(200).json({ message: "Category added" });
+    console.log(`Found ${categories.length} categories`);
+    res.json({ 
+      success: true,
+      categories,
+      count: categories.length 
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching categories:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to load categories" 
+    });
   }
 });
 
-/* VIEW */
-router.get("/", async (req, res) => {
-  const [categories] = await db.execute("SELECT * FROM categories");
-  res.status(200).json({ categories });
+/* ================= ADD CATEGORY (ADMIN) ================= */
+router.post("/add", adminMiddleware, async (req, res) => {
+  console.log("POST /api/categories/add", req.body);
+  const { category_name, description, image } = req.body;
+
+  if (!category_name) {
+    return res.status(400).json({ 
+      success: false,
+      message: "Category name required" 
+    });
+  }
+
+  try {
+    await db.execute(
+      `INSERT INTO categories (category_name, description, image)
+       VALUES (?, ?, ?)`,
+      [category_name, description || null, image || null]
+    );
+
+    res.json({ 
+      success: true,
+      message: "Category added successfully" 
+    });
+  } catch (err) {
+    console.error("Error adding category:", err);
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ 
+        success: false,
+        message: "Category already exists" 
+      });
+    }
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to add category" 
+    });
+  }
 });
 
-/* UPDATE */
-router.put("/update/:id", async (req, res) => {
-  const { category_name } = req.body;
-  await db.execute(
-    "UPDATE categories SET category_name=? WHERE id=?",
-    [category_name, req.params.id]
-  );
-  res.status(200).json({ message: "Category updated" });
+/* ================= UPDATE CATEGORY (ADMIN) ================= */
+router.put("/update/:id", adminMiddleware, async (req, res) => {
+  console.log(`PUT /api/categories/update/${req.params.id}`, req.body);
+  const { category_name, description, image } = req.body;
+
+  try {
+    await db.execute(
+      `UPDATE categories
+       SET category_name=?, description=?, image=?
+       WHERE id=?`,
+      [category_name, description || null, image || null, req.params.id]
+    );
+
+    res.json({ 
+      success: true,
+      message: "Category updated successfully" 
+    });
+  } catch (err) {
+    console.error("Error updating category:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to update category" 
+    });
+  }
 });
 
-/* DELETE */
-router.delete("/delete/:id", async (req, res) => {
-  await db.execute("DELETE FROM categories WHERE id=?", [req.params.id]);
-  res.status(200).json({ message: "Category deleted" });
+/* ================= DELETE CATEGORY (ADMIN) ================= */
+router.delete("/delete/:id", adminMiddleware, async (req, res) => {
+  console.log(`DELETE /api/categories/delete/${req.params.id}`);
+  try {
+    await db.execute(
+      "DELETE FROM categories WHERE id=?",
+      [req.params.id]
+    );
+    res.json({ 
+      success: true,
+      message: "Category deleted successfully" 
+    });
+  } catch (err) {
+    console.error("Error deleting category:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to delete category" 
+    });
+  }
 });
 
 module.exports = router;
