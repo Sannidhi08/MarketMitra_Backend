@@ -46,21 +46,21 @@ router.get("/farmer/:id", async (req, res) => {
 router.get("/all", async (req, res) => {
   try {
     const [jobs] = await db.execute(`
-      SELECT jobs.*, users.phone, users.name
+      SELECT 
+        jobs.*,
+        users.name,
+        users.phone
       FROM jobs
       JOIN users ON jobs.farmer_id = users.id
       ORDER BY jobs.id DESC
     `);
 
     res.json({ jobs });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Fetch all failed" });
   }
 });
-
-
 /* ================= UPDATE JOB ================= */
 router.put("/update/:id", async (req, res) => {
   try {

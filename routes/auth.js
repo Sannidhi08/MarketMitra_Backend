@@ -3,11 +3,9 @@ const router = express.Router();
 const db = require("../db");
 const bcrypt = require("bcryptjs");
 
-
-
 /* ================= REGISTER ================= */
 router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, phone } = req.body;
 
   if (!name || !email || !password || !role) {
     return res.status(400).json({ message: "All fields are required" });
@@ -21,6 +19,13 @@ router.post("/register", async (req, res) => {
   const validRoles = ["user", "farmer"];
   if (!validRoles.includes(role)) {
     return res.status(400).json({ message: "Invalid role" });
+  }
+
+  // ✅ Farmer must give phone
+  if (role === "farmer" && !phone) {
+    return res.status(400).json({
+      message: "Phone number required for farmers",
+    });
   }
 
   // ✅ Farmer → pending, User → approved
@@ -39,8 +44,9 @@ router.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.execute(
-      "INSERT INTO users (name,email,password,role,status) VALUES (?,?,?,?,?)",
-      [name, email, hashedPassword, role, status]
+      `INSERT INTO users (name,email,password,role,status,phone)
+       VALUES (?,?,?,?,?,?)`,
+      [name, email, hashedPassword, role, status, phone || null]
     );
 
     res.status(201).json({
@@ -55,6 +61,7 @@ router.post("/register", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 /* ================= LOGIN ================= */
 router.post("/login", async (req, res) => {
@@ -102,5 +109,43 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+
+/* ================= FORGOT PASSWORD ================= */
+router.post("/forgot-password", async (req, res) => {
+  const { email, newPassword } = req.body;
+
+  if (!email || !newPassword) {
+    return res.status(400).json({ message: "Email and new password required" });
+  }
+
+  try {
+    const [users] = await db.execute(
+      "SELECT id FROM users WHERE email=?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ message: "Email not registered" });
+    }
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    await db.execute(
+      "UPDATE users SET password=? WHERE email=?",
+      [hashed, email]
+    );
+
+    res.json({
+      success: true,
+      message: "Password reset successful. You can login now."
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 module.exports = router;

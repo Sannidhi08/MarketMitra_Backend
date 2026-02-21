@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 /* ================= ROUTES ================= */
-app.use("/auth", require("./routes/auth"));
+app.use("/api/auth", require("./routes/auth"));
 app.use("/users", require("./routes/users"));
 app.use("/api/categories", require("./routes/categories")); // ✅ Changed to /api/categories
 app.use("/products", require("./routes/products"));

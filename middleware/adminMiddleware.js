@@ -3,7 +3,7 @@ const db = require("../db");
 module.exports = async (req, res, next) => {
   try {
     const userId = req.headers["x-user-id"];
-
+    
     console.log("HEADER USER ID:", userId); // 👈 ADD THIS
 
     if (!userId) {
