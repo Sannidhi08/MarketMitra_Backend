@@ -14,9 +14,16 @@ router.post("/add", async (req, res) => {
     /* CREATE ORDER */
     const [orderResult] = await db.execute(
       `INSERT INTO orders 
-      (user_id, farmer_id, total_amount, address, payment_method)
-      VALUES (?,?,?,?,?)`,
-      [user_id, farmer_id, total_amount, JSON.stringify(address), paymentMethod]
+      (user_id, farmer_id, total_amount, address, payment_method, status)
+      VALUES (?,?,?,?,?,?)`,
+      [
+        user_id,
+        farmer_id,
+        total_amount,
+        JSON.stringify(address),
+        paymentMethod,
+        "pending"
+      ]
     );
 
     const orderId = orderResult.insertId;
@@ -99,6 +106,30 @@ router.get("/user/:userId", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to fetch orders" });
+  }
+});
+
+/* ================= UPDATE ORDER STATUS (FARMER) ================= */
+router.put("/:orderId/status", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    await db.execute(
+      "UPDATE orders SET status=? WHERE id=?",
+      [status, orderId]
+    );
+
+    res.json({
+      success: true,
+      message: "Order status updated"
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      message: "Failed to update order status"
+    });
   }
 });
 

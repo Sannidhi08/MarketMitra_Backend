@@ -1,3 +1,4 @@
+
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
@@ -6,6 +7,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static("uploads"));
 
 /* ================= ROUTES ================= */
 app.use("/api/auth", require("./routes/auth"));
@@ -16,6 +18,8 @@ app.use("/orders", require("./routes/orders"));
 app.use("/api/articles", require("./routes/articles"));
 app.use("/jobs", require("./routes/jobs"));
 app.use("/api/admin", require("./routes/users"));
+app.use("/uploads", express.static("uploads"));
+app.use("/api/farmer", require("./routes/farmer"));
 
 
 /* ================= ADD TEST ENDPOINTS ================= */
