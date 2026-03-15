@@ -22,6 +22,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/farmer", require("./routes/farmer"));
 
 
+
 /* ================= ADD TEST ENDPOINTS ================= */
 app.get("/api/test", (req, res) => {
   console.log("✅ /api/test endpoint hit");

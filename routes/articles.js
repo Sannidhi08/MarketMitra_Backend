@@ -5,6 +5,7 @@ const adminMiddleware = require("../middleware/adminMiddleware");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const axios = require("axios");
 
 /* ================= ENSURE UPLOAD FOLDER EXISTS ================= */
 
@@ -195,6 +196,74 @@ router.get("/public", async (req, res) => {
   } catch (err) {
     res.status(500).json({
       message: "Failed to load articles",
+    });
+  }
+});
+
+/* ================= TRANSLATE TEXT ================= */
+
+router.post("/translate", async (req, res) => {
+  const { text, target } = req.body;
+
+  if (!text || !target) {
+    return res.status(400).json({
+      message: "Text and target language required",
+    });
+  }
+
+  try {
+    // Try primary translation API (LibreTranslate)
+    try {
+      const response = await axios.post(
+        "https://libretranslate.de/translate",
+        {
+          q: text,
+          source: "en",
+          target: target,
+          format: "text",
+        },
+        {
+          timeout: 10000,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (response.data && response.data.translatedText) {
+        return res.json({
+          translatedText: response.data.translatedText,
+        });
+      }
+    } catch (primaryErr) {
+      console.log("Primary translation API failed, trying fallback...");
+    }
+
+    // Fallback to MyMemory Translation API
+    const fallbackResponse = await axios.get(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${target}`,
+      { timeout: 10000 }
+    );
+
+    if (fallbackResponse.data && fallbackResponse.data.responseData) {
+      return res.json({
+        translatedText: fallbackResponse.data.responseData.translatedText,
+      });
+    }
+
+    // If both APIs fail, return original text
+    res.json({
+      translatedText: text,
+      warning: "Translation service unavailable"
+    });
+
+  } catch (err) {
+    console.error("Translation error:", err.message);
+    
+    // Return original text instead of 500 error
+    res.json({
+      translatedText: text,
+      warning: "Translation failed"
     });
   }
 });
